@@ -1,13 +1,23 @@
 from pathlib import Path
 import tempfile
-from backend.app.security.url_extractor import extract_urls
-from backend.app.security.ocr import extract_text_from_image
+
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from pydantic import BaseModel
 
 from backend.app.ai.ollama_client import analyze_image
+from backend.app.models.schemas import AIObservation
+from backend.app.security.ocr import extract_text_from_image
 from backend.app.security.threat_engine import analyze_threat
+from backend.app.security.url_extractor import extract_urls
+
 
 router = APIRouter()
+
+
+class SharedContentRequest(BaseModel):
+    title: str = ""
+    text: str = ""
+    url: str = ""
 
 
 @router.post("/analyze")
@@ -38,10 +48,9 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
             temp_path = temp_file.name
 
         ocr_text = extract_text_from_image(temp_path)
-        
+
         observation = analyze_image(temp_path)
         observation.visible_text = ocr_text
-
         observation.urls = extract_urls(observation.visible_text)
 
         threat_analysis = analyze_threat(observation)
@@ -61,3 +70,34 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
     finally:
         if temp_path:
             Path(temp_path).unlink(missing_ok=True)
+
+
+@router.post("/analyze-text")
+async def analyze_shared_content(payload: SharedContentRequest):
+    combined_text = "\n\n".join(
+        part.strip()
+        for part in [
+            payload.title,
+            payload.text,
+            payload.url,
+        ]
+        if part and part.strip()
+    )
+
+    if not combined_text:
+        raise HTTPException(
+            status_code=400,
+            detail="No shared content was provided.",
+        )
+
+    observation = AIObservation(
+        visible_text=combined_text,
+        urls=extract_urls(combined_text),
+    )
+
+    threat_analysis = analyze_threat(observation)
+
+    return {
+        "observation": observation.model_dump(),
+        "analysis": threat_analysis.model_dump(),
+    }

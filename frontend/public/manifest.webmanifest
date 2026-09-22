@@ -1,0 +1,20 @@
+{
+  "name": "DEAD EYE",
+  "short_name": "DEAD EYE",
+  "description": "Privacy-first local AI security layer.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060809",
+  "theme_color": "#060809",
+  "orientation": "portrait",
+  "icons": [],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
