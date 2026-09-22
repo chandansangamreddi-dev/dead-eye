@@ -5,37 +5,83 @@ import Link from "next/link";
 import {
   Activity,
   ArrowUpRight,
-  Bell,
   ChevronRight,
   Link2,
   Moon,
-  ScanLine,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   Sun,
   Zap,
+  QrCode,
+  ScanLine,
 } from "lucide-react";
+
+type ActivityItem = {
+  risk: string;
+  threat: string;
+  mode: string;
+  time: string;
+};
+
+function DeadEyeMark({ size = 26 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={Math.round(size * 0.72)}
+      viewBox="0 0 64 46"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M4 23C12 10 23 4 32 4C41 4 52 10 60 23C52 36 41 42 32 42C23 42 12 36 4 23Z"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      <circle
+        cx="32"
+        cy="23"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="3.5"
+      />
+
+      <circle cx="32" cy="23" r="4" fill="currentColor" />
+
+      <path
+        d="M32 9V4M32 42V37M18 23H12M52 23H46"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(true);
   const [guardianMode, setGuardianMode] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("dead-eye-theme");
     const savedGuardian = localStorage.getItem("dead-eye-guardian");
+    const savedActivity = localStorage.getItem("dead-eye-activity");
 
-    if (savedTheme === "light") {
-      setDarkMode(false);
-    } else {
-      setDarkMode(true);
-    }
+    setDarkMode(savedTheme !== "light");
+    setGuardianMode(savedGuardian === "enabled");
 
-    if (savedGuardian === "enabled") {
-      setGuardianMode(true);
-    } else {
-      setGuardianMode(false);
+    if (savedActivity) {
+      try {
+        setActivities(JSON.parse(savedActivity));
+      } catch {
+        setActivities([]);
+      }
     }
 
     setMounted(true);
@@ -69,6 +115,12 @@ export default function Home() {
 
   const isDark = mounted ? darkMode : true;
 
+  const cardClass = isDark
+    ? "border-white/[0.07] bg-[#101416]"
+    : "border-black/[0.06] bg-white";
+
+  const mutedText = isDark ? "text-white/35" : "text-black/40";
+
   return (
     <main
       className={`min-h-screen overflow-hidden transition-colors duration-500 ${
@@ -81,17 +133,13 @@ export default function Home() {
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div
           className={`absolute -left-32 top-20 h-80 w-80 rounded-full blur-[110px] ${
-            isDark
-              ? "bg-[#55e6ad]/[0.07]"
-              : "bg-[#55e6ad]/[0.13]"
+            isDark ? "bg-[#55e6ad]/[0.07]" : "bg-[#55e6ad]/[0.13]"
           }`}
         />
 
         <div
           className={`absolute -right-32 top-[35%] h-96 w-96 rounded-full blur-[130px] ${
-            isDark
-              ? "bg-[#20a876]/[0.05]"
-              : "bg-[#8beac4]/[0.12]"
+            isDark ? "bg-[#20a876]/[0.05]" : "bg-[#8beac4]/[0.12]"
           }`}
         />
       </div>
@@ -101,32 +149,31 @@ export default function Home() {
         <header className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-[#A7F3D0] text-[#07110c]">
-                <ShieldCheck size={15} />
+              <div className="flex h-8 w-8 items-center justify-center rounded-[11px] bg-[#A7F3D0] text-[#07110c]">
+                <DeadEyeMark size={21} />
               </div>
 
               <span
-                className={`text-[11px] font-semibold tracking-[0.22em] ${
-                  isDark ? "text-white/45" : "text-black/40"
+                className={`text-[10px] font-semibold tracking-[0.22em] ${
+                  isDark ? "text-white/40" : "text-black/40"
                 }`}
               >
                 SECURITY LAYER
               </span>
             </div>
 
-            <h1 className="mt-3 text-[28px] font-semibold tracking-[-0.04em]">
+            <h1 className="mt-3 text-[29px] font-semibold tracking-[-0.045em]">
               DEAD EYE
             </h1>
           </div>
 
-          {/* Theme button */}
           <button
             type="button"
             onClick={toggleTheme}
             aria-label={
               isDark ? "Switch to light mode" : "Switch to dark mode"
             }
-            className={`relative flex h-12 w-12 items-center justify-center rounded-full border backdrop-blur-xl transition hover:scale-105 active:scale-95 ${
+            className={`flex h-12 w-12 items-center justify-center rounded-full border backdrop-blur-xl transition hover:scale-105 active:scale-95 ${
               isDark
                 ? "border-white/[0.08] bg-white/[0.04]"
                 : "border-black/[0.07] bg-white/70"
@@ -140,13 +187,9 @@ export default function Home() {
           </button>
         </header>
 
-        {/* HERO */}
+        {/* Hero */}
         <section
-          className={`relative mt-8 overflow-hidden rounded-[36px] border p-6 ${
-            isDark
-              ? "border-white/[0.08] bg-[#101614]"
-              : "border-black/[0.06] bg-white"
-          }`}
+          className={`relative mt-8 overflow-hidden rounded-[36px] border p-6 ${cardClass}`}
         >
           <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[#69e9b6]/20 blur-[90px]" />
 
@@ -162,23 +205,17 @@ export default function Home() {
                 ACTIVE PROTECTION
               </div>
 
-              <div
-                className={`flex items-center gap-1.5 text-[10px] ${
-                  isDark ? "text-white/35" : "text-black/35"
-                }`}
-              >
+              <div className={`flex items-center gap-1.5 text-[10px] ${mutedText}`}>
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#A7F3D0]" />
                 LIVE
               </div>
             </div>
 
-            {/* Shield visual */}
+            {/* Eye visual */}
             <div className="relative mt-8 flex justify-center">
               <div
                 className={`absolute h-36 w-36 rounded-full blur-3xl ${
-                  isDark
-                    ? "bg-[#67e8b4]/20"
-                    : "bg-[#67e8b4]/25"
+                  isDark ? "bg-[#67e8b4]/20" : "bg-[#67e8b4]/25"
                 }`}
               />
 
@@ -197,25 +234,18 @@ export default function Home() {
                   }`}
                 />
 
-                <ShieldCheck
-                  size={55}
-                  strokeWidth={1.4}
+                <div
                   className={
-                    isDark
-                      ? "text-[#A7F3D0]"
-                      : "text-[#15966a]"
+                    isDark ? "text-[#A7F3D0]" : "text-[#15966a]"
                   }
-                />
+                >
+                  <DeadEyeMark size={70} />
+                </div>
               </div>
             </div>
 
-            {/* Status */}
             <div className="mt-7 text-center">
-              <p
-                className={`text-xs ${
-                  isDark ? "text-white/40" : "text-black/40"
-                }`}
-              >
+              <p className={`text-xs ${mutedText}`}>
                 Protection status
               </p>
 
@@ -232,7 +262,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Bottom status */}
             <div
               className={`mt-7 flex items-center justify-between rounded-[20px] px-4 py-3 ${
                 isDark ? "bg-white/[0.035]" : "bg-black/[0.025]"
@@ -261,11 +290,7 @@ export default function Home() {
                     No active threats
                   </p>
 
-                  <p
-                    className={`text-[10px] ${
-                      isDark ? "text-white/30" : "text-black/35"
-                    }`}
-                  >
+                  <p className={`text-[10px] ${mutedText}`}>
                     System ready
                   </p>
                 </div>
@@ -273,25 +298,21 @@ export default function Home() {
 
               <ChevronRight
                 size={16}
-                className={
-                  isDark ? "text-white/20" : "text-black/20"
-                }
+                className={isDark ? "text-white/20" : "text-black/20"}
               />
             </div>
           </div>
         </section>
 
-        {/* GUARDIAN MODE */}
+        {/* Guardian Mode */}
         <section className="mt-4">
           <div
-            className={`relative overflow-hidden rounded-[28px] border p-5 transition-all duration-300 ${
+            className={`relative overflow-hidden rounded-[28px] border p-5 ${
               guardianMode
                 ? isDark
                   ? "border-[#A7F3D0]/20 bg-[#A7F3D0]/[0.06]"
                   : "border-[#15966a]/20 bg-[#15966a]/[0.05]"
-                : isDark
-                  ? "border-white/[0.07] bg-[#101416]"
-                  : "border-black/[0.06] bg-white"
+                : cardClass
             }`}
           >
             {guardianMode && (
@@ -333,11 +354,7 @@ export default function Home() {
                     )}
                   </div>
 
-                  <p
-                    className={`mt-1 max-w-[235px] text-xs leading-5 ${
-                      isDark ? "text-white/35" : "text-black/40"
-                    }`}
-                  >
+                  <p className={`mt-1 max-w-[235px] text-xs leading-5 ${mutedText}`}>
                     {guardianMode
                       ? "High-confidence threats are flagged for protected review."
                       : "Extra protection for users who want stronger threat warnings."}
@@ -345,7 +362,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Guardian toggle */}
               <button
                 type="button"
                 onClick={toggleGuardianMode}
@@ -355,7 +371,7 @@ export default function Home() {
                     : "Enable Guardian Mode"
                 }
                 aria-pressed={guardianMode}
-                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300 ${
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
                   guardianMode
                     ? "bg-[#A7F3D0]"
                     : isDark
@@ -364,7 +380,7 @@ export default function Home() {
                 }`}
               >
                 <span
-                  className={`absolute top-1 h-5 w-5 rounded-full shadow-sm transition-all duration-300 ${
+                  className={`absolute top-1 h-5 w-5 rounded-full shadow-sm transition-all ${
                     guardianMode
                       ? "right-1 bg-[#07110c]"
                       : "left-1 bg-white/80"
@@ -389,11 +405,7 @@ export default function Home() {
                   }`}
                 />
 
-                <p
-                  className={`text-[10px] ${
-                    isDark ? "text-white/35" : "text-black/40"
-                  }`}
-                >
+                <p className={`text-[10px] ${mutedText}`}>
                   {guardianMode
                     ? "Guardian protection is active on this device."
                     : "Standard protection is active."}
@@ -403,7 +415,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* QUICK ACTIONS */}
+        {/* Quick Actions */}
         <section className="mt-9">
           <div className="mb-4 flex items-end justify-between">
             <div>
@@ -433,8 +445,8 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-3">
             {/* Screenshot */}
             <Link
-              href="/scan"
-              className={`group relative overflow-hidden rounded-[28px] border p-5 text-left transition duration-300 hover:-translate-y-1 ${
+              href="/scan?mode=screenshot"
+              className={`group relative overflow-hidden rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${
                 isDark
                   ? "border-white/[0.07] bg-[#101416] hover:border-[#A7F3D0]/20"
                   : "border-black/[0.06] bg-white hover:border-[#15966a]/20"
@@ -455,11 +467,7 @@ export default function Home() {
               <div className="relative mt-7">
                 <p className="text-sm font-semibold">Screenshot</p>
 
-                <p
-                  className={`mt-1 text-xs leading-4 ${
-                    isDark ? "text-white/30" : "text-black/40"
-                  }`}
-                >
+                <p className={`mt-1 text-xs leading-4 ${mutedText}`}>
                   Scan visual content
                 </p>
               </div>
@@ -477,17 +485,15 @@ export default function Home() {
 
                 <ArrowUpRight
                   size={16}
-                  className={
-                    isDark ? "text-white/20" : "text-black/20"
-                  }
+                  className={isDark ? "text-white/20" : "text-black/20"}
                 />
               </div>
             </Link>
 
             {/* Link */}
             <Link
-              href="/scan"
-              className={`group relative overflow-hidden rounded-[28px] border p-5 text-left transition duration-300 hover:-translate-y-1 ${
+              href="/scan?mode=link"
+              className={`group relative overflow-hidden rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${
                 isDark
                   ? "border-white/[0.07] bg-[#101416] hover:border-[#A7F3D0]/20"
                   : "border-black/[0.06] bg-white hover:border-[#15966a]/20"
@@ -508,11 +514,7 @@ export default function Home() {
               <div className="relative mt-7">
                 <p className="text-sm font-semibold">Link</p>
 
-                <p
-                  className={`mt-1 text-xs leading-4 ${
-                    isDark ? "text-white/30" : "text-black/40"
-                  }`}
-                >
+                <p className={`mt-1 text-xs leading-4 ${mutedText}`}>
                   Inspect a suspicious URL
                 </p>
               </div>
@@ -530,16 +532,51 @@ export default function Home() {
 
                 <ArrowUpRight
                   size={16}
-                  className={
-                    isDark ? "text-white/20" : "text-black/20"
-                  }
+                  className={isDark ? "text-white/20" : "text-black/20"}
+                />
+              </div>
+            </Link>
+
+            {/* QR */}
+            <Link
+              href="/scan?mode=qr"
+              className={`group relative col-span-2 overflow-hidden rounded-[28px] border p-5 transition duration-300 hover:-translate-y-1 ${
+                isDark
+                  ? "border-white/[0.07] bg-[#101416] hover:border-[#A7F3D0]/20"
+                  : "border-black/[0.06] bg-white hover:border-[#15966a]/20"
+              }`}
+            >
+              <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#A7F3D0]/[0.06] blur-2xl" />
+
+              <div className="relative flex items-center gap-4">
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+                    isDark
+                      ? "bg-[#A7F3D0]/10 text-[#A7F3D0]"
+                      : "bg-[#15966a]/10 text-[#15966a]"
+                  }`}
+                >
+                  <QrCode size={22} />
+                </div>
+
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">QR Code</p>
+
+                  <p className={`mt-1 text-xs ${mutedText}`}>
+                    Scan a QR destination with your camera
+                  </p>
+                </div>
+
+                <ArrowUpRight
+                  size={17}
+                  className={isDark ? "text-white/20" : "text-black/20"}
                 />
               </div>
             </Link>
           </div>
         </section>
 
-        {/* SECURITY ACTIVITY */}
+        {/* Security Activity */}
         <section className="mt-9">
           <div className="mb-4 flex items-end justify-between">
             <div>
@@ -552,99 +589,110 @@ export default function Home() {
               </p>
 
               <h2 className="mt-1 text-xl font-semibold tracking-tight">
-                Looking good
+                {activities.length > 0
+                  ? "Recent scans"
+                  : "Looking good"}
               </h2>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {}}
-              className={`text-xs ${
-                isDark ? "text-white/35" : "text-black/40"
-              }`}
-            >
-              View all
-            </button>
+            <Activity
+              size={18}
+              className={
+                isDark
+                  ? "text-[#A7F3D0]/60"
+                  : "text-[#15966a]/60"
+              }
+            />
           </div>
 
-          <div
-            className={`rounded-[28px] border p-4 ${
-              isDark
-                ? "border-white/[0.07] bg-[#101416]"
-                : "border-black/[0.06] bg-white"
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                  isDark
-                    ? "bg-[#A7F3D0]/10"
-                    : "bg-[#15966a]/10"
-                }`}
-              >
-                <Activity
-                  size={20}
-                  className={
-                    isDark
-                      ? "text-[#A7F3D0]"
-                      : "text-[#15966a]"
-                  }
-                />
-              </div>
+          {activities.length > 0 ? (
+            <div className="space-y-2">
+              {activities.slice(0, 3).map((item, index) => (
+                <div
+                  key={`${item.time}-${index}`}
+                  className={`rounded-[24px] border p-4 ${cardClass}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                        item.risk === "SAFE"
+                          ? isDark
+                            ? "bg-[#A7F3D0]/10 text-[#A7F3D0]"
+                            : "bg-[#15966a]/10 text-[#15966a]"
+                          : "bg-red-400/10 text-red-300"
+                      }`}
+                    >
+                      {item.risk === "SAFE" ? (
+                        <ShieldCheck size={19} />
+                      ) : (
+                        <ShieldAlert size={19} />
+                      )}
+                    </div>
 
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">
-                    No threats detected
-                  </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-sm font-medium">
+                          {item.threat}
+                        </p>
 
-                  <span
-                    className={`text-[10px] ${
-                      isDark ? "text-white/25" : "text-black/30"
-                    }`}
-                  >
-                    NOW
-                  </span>
+                        <span className={`shrink-0 text-[9px] ${mutedText}`}>
+                          {item.time}
+                        </span>
+                      </div>
+
+                      <p className={`mt-1 text-xs ${mutedText}`}>
+                        {item.mode} · {item.risk}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-
-                <p
-                  className={`mt-1 text-xs ${
-                    isDark ? "text-white/30" : "text-black/40"
+              ))}
+            </div>
+          ) : (
+            <div className={`rounded-[28px] border p-4 ${cardClass}`}>
+              <div className="flex items-center gap-4">
+                <div
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+                    isDark
+                      ? "bg-[#A7F3D0]/10"
+                      : "bg-[#15966a]/10"
                   }`}
                 >
-                  Your digital environment is clear.
-                </p>
+                  <Activity
+                    size={20}
+                    className={
+                      isDark
+                        ? "text-[#A7F3D0]"
+                        : "text-[#15966a]"
+                    }
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium">
+                    No scans yet
+                  </p>
+
+                  <p className={`mt-1 text-xs ${mutedText}`}>
+                    Your security activity will appear here.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </section>
       </div>
 
-      {/* Floating DEAD EYE button */}
-      <button
-        type="button"
-        onClick={() => {
-          window.location.href = "/scan";
-        }}
-        className={`fixed bottom-24 right-5 z-20 flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_12px_50px_rgba(80,230,170,0.18)] backdrop-blur-xl transition duration-300 hover:scale-105 active:scale-95 ${
-          isDark
-            ? "border-[#A7F3D0]/20 bg-[#111917] text-[#A7F3D0]"
-            : "border-[#15966a]/20 bg-white text-[#15966a]"
-        }`}
-        aria-label="Open DEAD EYE scanner"
-      >
-        <ShieldCheck size={23} />
-      </button>
-
       {/* Bottom Navigation */}
       <nav
-        className={`fixed bottom-0 left-0 right-0 z-10 border-t backdrop-blur-2xl ${
+        className={`fixed bottom-0 left-0 right-0 z-30 border-t backdrop-blur-2xl ${
           isDark
-            ? "border-white/[0.06] bg-[#060809]/85"
-            : "border-black/[0.06] bg-[#F1F6F3]/85"
+            ? "border-white/[0.06] bg-[#060809]/90"
+            : "border-black/[0.06] bg-[#F1F6F3]/90"
         }`}
       >
-        <div className="mx-auto flex max-w-md items-center justify-around px-6 py-4">
+        <div className="mx-auto grid max-w-md grid-cols-4 items-end px-5 pb-4 pt-3">
+          {/* Home */}
           <Link
             href="/"
             className={`flex flex-col items-center gap-1.5 ${
@@ -652,56 +700,63 @@ export default function Home() {
             }`}
           >
             <ShieldCheck size={19} />
-
-            <span className="text-[10px] font-medium">
-              Home
-            </span>
+            <span className="text-[10px] font-medium">Home</span>
           </Link>
 
+          {/* Activity */}
           <button
             type="button"
-            onClick={() => {}}
+            onClick={() => {
+              window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: "smooth",
+              });
+            }}
             className={`flex flex-col items-center gap-1.5 ${
               isDark ? "text-white/30" : "text-black/30"
             }`}
           >
             <Activity size={19} />
-
-            <span className="text-[10px] font-medium">
-              Activity
-            </span>
+            <span className="text-[10px] font-medium">Activity</span>
           </button>
 
           {/* Center Scan */}
           <Link
             href="/scan"
-            className={`-mt-8 flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_10px_35px_rgba(80,230,170,0.18)] ${
-              isDark
-                ? "border-[#A7F3D0]/20 bg-[#A7F3D0] text-[#07110c]"
-                : "border-[#15966a]/20 bg-[#15966a] text-white"
-            }`}
-            aria-label="Scan"
+            aria-label="Open DEAD EYE scanner"
+            className="relative -mt-9 flex flex-col items-center justify-center"
           >
-            <ScanLine size={21} />
+            <span
+              className={`flex h-16 w-16 items-center justify-center rounded-full border shadow-[0_10px_40px_rgba(80,230,170,0.22)] ${
+                isDark
+                  ? "border-[#A7F3D0]/20 bg-[#A7F3D0] text-[#07110c]"
+                  : "border-[#15966a]/20 bg-[#15966a] text-white"
+              }`}
+            >
+              <DeadEyeMark size={32} />
+            </span>
+
+            <span
+              className={`mt-1 text-[10px] font-semibold tracking-[0.08em] ${
+                isDark ? "text-[#A7F3D0]" : "text-[#15966a]"
+              }`}
+            >
+              SCAN
+            </span>
           </Link>
 
-          {/* Bottom theme button */}
+          {/* Theme / Settings */}
           <button
             type="button"
             onClick={toggleTheme}
             aria-label={
               isDark ? "Switch to light mode" : "Switch to dark mode"
             }
-            aria-pressed={!isDark}
             className={`flex flex-col items-center gap-1.5 ${
               isDark ? "text-white/30" : "text-black/30"
             }`}
           >
-            {isDark ? (
-              <Moon size={19} />
-            ) : (
-              <Sun size={19} />
-            )}
+            {isDark ? <Moon size={19} /> : <Sun size={19} />}
 
             <span className="text-[10px] font-medium">
               {isDark ? "Dark" : "Light"}
