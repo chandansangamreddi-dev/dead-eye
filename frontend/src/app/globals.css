@@ -4,8 +4,11 @@
   color-scheme: dark;
 }
 
-* {
-  box-sizing: border-box;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
 }
 
 html {
@@ -13,14 +16,18 @@ html {
 }
 
 body {
-  margin: 0;
   background: #080a0c;
   color: white;
   font-family: Arial, Helvetica, sans-serif;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 button {
   font: inherit;
+  cursor: pointer;
 }
 
 button,
