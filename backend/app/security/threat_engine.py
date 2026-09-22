@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
 
-from app.models.schemas import GuardianAction, RiskLevel, ThreatAnalysis
+from backend.app.models.schemas import GuardianAction, RiskLevel, ThreatAnalysis
 
 
 SUSPICIOUS_KEYWORDS = {

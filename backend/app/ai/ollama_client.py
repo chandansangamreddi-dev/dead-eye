@@ -3,8 +3,8 @@ from pathlib import Path
 
 from ollama import Client
 
-from app.ai.prompts import SYSTEM_PROMPT
-from app.models.schemas import ThreatAnalysis
+from backend.app.ai.prompts import SYSTEM_PROMPT
+from backend.app.models.schemas import ThreatAnalysis
 
 
 OLLAMA_HOST = "http://localhost:11434"

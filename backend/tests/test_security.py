@@ -1,5 +1,5 @@
-from app.models.schemas import ThreatAnalysis
-from app.security.threat_engine import analyze_threat
+from backend.app.models.schemas import ThreatAnalysis
+from backend.app.security.threat_engine import analyze_threat
 
 
 def test_phishing_content_is_blocked():

@@ -1,4 +1,4 @@
-from app.ai.ollama_client import analyze_image
+from backend.app.ai.ollama_client import analyze_image
 
 
 IMAGE_PATH = "samples/phishing_test.png"
