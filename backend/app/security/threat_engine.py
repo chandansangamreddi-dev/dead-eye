@@ -1,108 +1,91 @@
 from urllib.parse import urlparse
 
-from backend.app.models.schemas import GuardianAction, RiskLevel, ThreatAnalysis
+from backend.app.models.schemas import (
+    AIObservation,
+    GuardianAction,
+    RiskLevel,
+    ThreatAnalysis,
+)
 
 
-SUSPICIOUS_KEYWORDS = {
-    "urgent",
-    "immediate",
-    "verify",
-    "suspend",
-    "suspended",
-    "password",
-    "credential",
-    "login",
-    "account",
-    "payment",
-    "refund",
-    "security alert",
-}
-
-
-def analyze_threat(
-    *,
-    text: str,
-    urls: list[str],
-    ai_analysis: ThreatAnalysis,
-) -> ThreatAnalysis:
+def analyze_threat(observation: AIObservation) -> ThreatAnalysis:
     """
-    Combine AI observations with deterministic security signals.
+    Convert AI observations into a deterministic security verdict.
 
-    The AI provides contextual understanding.
-    Deterministic rules provide a safety backstop.
+    The AI observes.
+    The Threat Engine decides.
     """
 
-    signals: list[str] = []
     score = 0
-
-    normalized_text = text.lower()
+    evidence: list[str] = []
 
     # ---------------------------------------------------------
-    # 1. Urgency / pressure
+    # 1. Urgency
     # ---------------------------------------------------------
-    urgency_hits = [
-        keyword
-        for keyword in (
-            "urgent",
-            "immediate",
-            "today",
-            "within 24 hours",
-            "act now",
-        )
-        if keyword in normalized_text
-    ]
-
-    if urgency_hits:
-        score += 15
-        signals.append(
+    if observation.urgency:
+        score += 20
+        evidence.append(
             "Urgency or pressure language detected."
         )
 
     # ---------------------------------------------------------
-    # 2. Account / credential targeting
+    # 2. Credential request
     # ---------------------------------------------------------
-    credential_hits = [
-        keyword
-        for keyword in (
-            "password",
-            "login",
-            "verify your account",
-            "verify identity",
-            "credentials",
-            "sign in",
-        )
-        if keyword in normalized_text
-    ]
-
-    if credential_hits:
-        score += 25
-        signals.append(
-            "The content requests or pressures the user toward "
-            "account or credential verification."
+    if observation.credential_request:
+        score += 30
+        evidence.append(
+            "The content requests or pressures the user "
+            "to verify account or credential information."
         )
 
     # ---------------------------------------------------------
-    # 3. Suspicious URL structure
+    # 3. Account threat
     # ---------------------------------------------------------
-    for url in urls:
+    if observation.account_threat:
+        score += 20
+        evidence.append(
+            "The message threatens account suspension or loss "
+            "of access."
+        )
+
+    # ---------------------------------------------------------
+    # 4. Financial targeting
+    # ---------------------------------------------------------
+    if observation.financial_targeting:
+        score += 20
+        evidence.append(
+            "The content appears to target financial information "
+            "or financial assets."
+        )
+
+    # ---------------------------------------------------------
+    # 5. Impersonation
+    # ---------------------------------------------------------
+    if observation.impersonation:
+        score += 20
+        evidence.append(
+            "The content appears to impersonate another organization "
+            "or trusted entity."
+        )
+
+    # ---------------------------------------------------------
+    # 6. URL analysis
+    # ---------------------------------------------------------
+    for url in observation.urls:
         parsed = urlparse(url)
 
         hostname = parsed.hostname or ""
 
         if not hostname:
             score += 20
-            signals.append("A malformed or unreadable URL was detected.")
+            evidence.append(
+                "A malformed or unreadable URL was detected."
+            )
             continue
 
-        # Raw IP addresses are suspicious in many phishing contexts.
-        if hostname.replace(".", "").isdigit():
-            score += 20
-            signals.append(
-                f"URL uses an IP address instead of a normal domain: {hostname}"
-            )
+        hostname_lower = hostname.lower()
 
-        # Common suspicious URL patterns.
-        suspicious_parts = (
+        suspicious_terms = (
             "verify",
             "secure",
             "login",
@@ -112,33 +95,27 @@ def analyze_threat(
             "authentication",
         )
 
-        matched_parts = [
-            part for part in suspicious_parts
-            if part in hostname.lower()
+        matched_terms = [
+            term
+            for term in suspicious_terms
+            if term in hostname_lower
         ]
 
-        if matched_parts:
+        if matched_terms:
             score += 15
-            signals.append(
-                f"URL contains security/account-themed terms: "
-                f"{', '.join(matched_parts)}."
+            evidence.append(
+                "The URL contains security or account-related "
+                "terms: " + ", ".join(matched_terms) + "."
             )
 
-        # Excessive subdomains can be suspicious.
         if hostname.count(".") >= 3:
             score += 10
-            signals.append(
-                f"URL contains an unusually deep subdomain structure: {hostname}"
+            evidence.append(
+                "The URL contains an unusually deep subdomain structure."
             )
 
     # ---------------------------------------------------------
-    # 4. Respect strong AI evidence
-    # ---------------------------------------------------------
-    if ai_analysis.risk_level in {"HIGH", "CRITICAL"}:
-        score += 25
-
-    # ---------------------------------------------------------
-    # 5. Convert deterministic score to risk
+    # 7. Determine final risk
     # ---------------------------------------------------------
     if score >= 70:
         risk_level: RiskLevel = "CRITICAL"
@@ -157,26 +134,55 @@ def analyze_threat(
         guardian_action = "ALLOW"
 
     # ---------------------------------------------------------
-    # 6. Preserve AI evidence if deterministic engine found less
+    # 8. Confidence based on deterministic signal strength
     # ---------------------------------------------------------
-    combined_evidence = list(dict.fromkeys(
-        signals + ai_analysis.evidence
-    ))
+    confidence = min(score / 100, 0.99)
+
+    # ---------------------------------------------------------
+    # 9. Determine threat type
+    # ---------------------------------------------------------
+    if score >= 25:
+        threat_type = "Phishing / Social Engineering"
+    else:
+        threat_type = "No significant threat detected"
+
+    # ---------------------------------------------------------
+    # 10. Final explanation
+    # ---------------------------------------------------------
+    if guardian_action == "BLOCK":
+        explanation = (
+            "Multiple security indicators were detected. "
+            "The content should not be interacted with until "
+            "its legitimacy is independently verified."
+        )
+        recommended_action = (
+            "Do not click links or provide sensitive information. "
+            "Verify the sender through an official channel."
+        )
+
+    elif guardian_action == "WARN":
+        explanation = (
+            "Some suspicious indicators were detected. "
+            "Review the content carefully before interacting with it."
+        )
+        recommended_action = (
+            "Verify the sender and destination before proceeding."
+        )
+
+    else:
+        explanation = (
+            "No significant security indicators were detected."
+        )
+        recommended_action = (
+            "No immediate security action is required."
+        )
 
     return ThreatAnalysis(
         risk_level=risk_level,
-        threat_type=ai_analysis.threat_type,
-        confidence=max(
-            ai_analysis.confidence,
-            min(score / 100, 0.99),
-        ),
-        evidence=combined_evidence,
-        explanation=ai_analysis.explanation,
-        recommended_action=(
-            "Do not interact with the content. Verify the sender "
-            "through an official channel."
-            if guardian_action == "BLOCK"
-            else ai_analysis.recommended_action
-        ),
+        threat_type=threat_type,
+        confidence=confidence,
+        evidence=evidence,
+        explanation=explanation,
+        recommended_action=recommended_action,
         guardian_action=guardian_action,
     )

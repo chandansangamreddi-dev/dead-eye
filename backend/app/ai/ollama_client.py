@@ -4,7 +4,7 @@ from pathlib import Path
 from ollama import Client
 
 from backend.app.ai.prompts import SYSTEM_PROMPT
-from backend.app.models.schemas import ThreatAnalysis
+from backend.app.models.schemas import AIObservation
 
 
 OLLAMA_HOST = "http://localhost:11434"
@@ -13,49 +13,39 @@ MODEL_NAME = "gemma3:4b"
 client = Client(host=OLLAMA_HOST)
 
 
-THREAT_SCHEMA = {
+OBSERVATION_SCHEMA = {
     "type": "object",
     "properties": {
-        "risk_level": {
-            "type": "string",
-            "enum": ["SAFE", "LOW", "MEDIUM", "HIGH", "CRITICAL"],
-        },
-        "threat_type": {
-            "type": "string",
-        },
-        "confidence": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1,
-        },
-        "evidence": {
+        "visible_text": {"type": "string"},
+        "sender": {"type": "string"},
+        "subject": {"type": "string"},
+        "urls": {
             "type": "array",
             "items": {"type": "string"},
         },
-        "explanation": {
-            "type": "string",
-        },
-        "recommended_action": {
-            "type": "string",
-        },
-        "guardian_action": {
-            "type": "string",
-            "enum": ["ALLOW", "WARN", "BLOCK"],
-        },
+        "call_to_action": {"type": "string"},
+        "urgency": {"type": "boolean"},
+        "credential_request": {"type": "boolean"},
+        "financial_targeting": {"type": "boolean"},
+        "impersonation": {"type": "boolean"},
+        "account_threat": {"type": "boolean"},
     },
     "required": [
-        "risk_level",
-        "threat_type",
-        "confidence",
-        "evidence",
-        "explanation",
-        "recommended_action",
-        "guardian_action",
+        "visible_text",
+        "sender",
+        "subject",
+        "urls",
+        "call_to_action",
+        "urgency",
+        "credential_request",
+        "financial_targeting",
+        "impersonation",
+        "account_threat",
     ],
 }
 
 
-def analyze_image(image_path: str) -> ThreatAnalysis:
+def analyze_image(image_path: str) -> AIObservation:
     path = Path(image_path).resolve()
 
     if not path.exists():
@@ -99,7 +89,7 @@ Do not wrap the JSON in ``` blocks.
                 "images": [str(path)],
             },
         ],
-        format=THREAT_SCHEMA,
+        format=OBSERVATION_SCHEMA,
     )
 
     content = response.message.content.strip()
@@ -111,4 +101,4 @@ Do not wrap the JSON in ``` blocks.
             f"Gemma returned invalid JSON:\n{content}"
         ) from exc
 
-    return ThreatAnalysis.model_validate(result)
+    return AIObservation.model_validate(result)

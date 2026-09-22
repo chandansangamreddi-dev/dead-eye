@@ -4,6 +4,7 @@ import tempfile
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from backend.app.ai.ollama_client import analyze_image
+from backend.app.security.threat_engine import analyze_threat
 
 router = APIRouter()
 
@@ -28,8 +29,6 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
                 detail="Uploaded image is empty.",
             )
 
-        # Create a temporary file that remains available to Ollama
-        # as a separate process.
         with tempfile.NamedTemporaryFile(
             suffix=suffix,
             delete=False,
@@ -37,20 +36,22 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
             temp_file.write(image_bytes)
             temp_path = temp_file.name
 
-        result = analyze_image(temp_path)
+        observation = analyze_image(temp_path)
 
-        return result.model_dump()
+        threat_analysis = analyze_threat(observation)
+
+        return {
+            "observation": observation.model_dump(),
+            "analysis": threat_analysis.model_dump(),
+        }
 
     except HTTPException:
         raise
-
     except Exception as exc:
         raise HTTPException(
             status_code=500,
             detail=f"Image analysis failed: {exc}",
         ) from exc
-
     finally:
-        # Remove the temporary image after Ollama has finished.
         if temp_path:
             Path(temp_path).unlink(missing_ok=True)
