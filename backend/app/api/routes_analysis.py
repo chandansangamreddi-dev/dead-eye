@@ -1,6 +1,7 @@
 from pathlib import Path
 import tempfile
-
+from backend.app.security.url_extractor import extract_urls
+from backend.app.security.ocr import extract_text_from_image
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from backend.app.ai.ollama_client import analyze_image
@@ -36,7 +37,12 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
             temp_file.write(image_bytes)
             temp_path = temp_file.name
 
+        ocr_text = extract_text_from_image(temp_path)
+        
         observation = analyze_image(temp_path)
+        observation.visible_text = ocr_text
+
+        observation.urls = extract_urls(observation.visible_text)
 
         threat_analysis = analyze_threat(observation)
 
